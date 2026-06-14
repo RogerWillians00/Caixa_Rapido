@@ -24,7 +24,7 @@ class _NameScreenState extends State<NameScreen> {
   Future<void> _pickImage() async {
     final XFile? pickedFile = await _picker.pickImage(
       source: ImageSource.gallery,
-      imageQuality: 50, // Mantendo a qualidade baixa para economizar RAM no iOS 12
+      imageQuality: 50, // Mantendo a qualidade baixa para economizar RAM no iOS 12 para iPad air 1
     );
 
     if (pickedFile != null) {
