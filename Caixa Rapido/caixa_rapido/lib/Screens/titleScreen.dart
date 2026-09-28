@@ -120,7 +120,7 @@ class TitleScreen extends StatelessWidget {
         Text(
           "ao",
           style: TextStyle(
-            fontSize: 20 * baseFontSize,
+            fontSize: 30 * baseFontSize,
             color: textColor,
           ),
         ),
@@ -161,7 +161,7 @@ class TitleScreen extends StatelessWidget {
       "Este app foi pensado para você que precisa registrar suas vendas do dia a dia de maneira rápida e fácil.",
       textAlign: TextAlign.center,
       style: TextStyle(
-        fontSize: 14 * baseFontSize,
+        fontSize: 16 * baseFontSize,
         color: textColor,
       ),
     );
@@ -214,12 +214,12 @@ class TitleScreen extends StatelessWidget {
               'assets/images/linkedinIcon.svg',
               width: iconSize,
               height: iconSize,
-              color: const Color(0xffC0C0C0),
+              color: const Color(0xffC0C0C4),
             ),
             Text(
               ' in/rogerw00/       ',
               style: TextStyle(
-                color: const Color(0xffC0C0C0),
+                color: const Color(0xffC0C0C1),
                 fontSize: 14 * baseFontSize,
               ),
             ),
