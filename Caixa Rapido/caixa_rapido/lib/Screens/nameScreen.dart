@@ -1,7 +1,10 @@
-import 'dart:io'; // Necessario para usar a classe File
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
+
 import '../app_Controlers/darktheme.dart';
+import '../app_Controlers/local_storage.dart';
+import '../models/saved_app_data.dart';
 
 class NameScreen extends StatefulWidget {
   const NameScreen({Key? key}) : super(key: key);
@@ -16,30 +19,61 @@ class _NameScreenState extends State<NameScreen> {
   // ================================================================
   final TextEditingController _controller = TextEditingController();
   final ImagePicker _picker = ImagePicker();
-  File? _image;
+  Uint8List? _imageBytes;
+  bool _isSaving = false;
 
   // ================================================================
   // METODO: Selecionar imagem da galeria
   // ================================================================
   Future<void> _pickImage() async {
-    final XFile? pickedFile = await _picker.pickImage(
-      source: ImageSource.gallery,
-      // Qualidade baixa para economizar memoria no iOS 12 e no iPad Air 1
-      imageQuality: 50,
-    );
+    try {
+      final XFile? pickedFile = await _picker.pickImage(
+        source: ImageSource.gallery,
+        // Qualidade baixa para economizar memoria no iOS 12 e no iPad Air 1
+        imageQuality: 50,
+      );
 
-    if (pickedFile != null) {
-      setState(() {
-        _image = File(pickedFile.path);
-      });
+      if (pickedFile != null) {
+        final imageBytes = await pickedFile.readAsBytes();
+        if (!mounted) return;
+        setState(() => _imageBytes = imageBytes);
+      }
+    } on PlatformException catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Não foi possível selecionar a foto: $error')),
+      );
     }
   }
 
   // ================================================================
   // METODO: Botao Comecar
   // ================================================================
-  void _onStartPressed(BuildContext context) {
-    Navigator.of(context).pushReplacementNamed('/inventory');
+  Future<void> _onStartPressed(BuildContext context) async {
+    if (_isSaving) return;
+
+    setState(() => _isSaving = true);
+    try {
+      final existingData = await LocalStorage.loadAppData();
+      final cashName = _controller.text.trim();
+      await LocalStorage.saveAppData(
+        SavedAppData(
+          cashName: cashName.isEmpty ? 'Caixa 1' : cashName,
+          cashImageBytes: _imageBytes,
+          products: existingData?.products ?? const [],
+        ),
+      );
+
+      if (!mounted) return;
+      Navigator.of(context).pushReplacementNamed('/inventory');
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Não foi possível salvar o caixa: $error')),
+      );
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
   }
 
   @override
@@ -185,8 +219,8 @@ class _NameScreenState extends State<NameScreen> {
         radius: avatarRadius,
         backgroundColor: placeholderColor,
         // Exibe a foto selecionada, quando existir
-        backgroundImage: _image != null ? FileImage(_image!) : null,
-        child: _image == null
+        backgroundImage: _imageBytes != null ? MemoryImage(_imageBytes!) : null,
+        child: _imageBytes == null
             ? Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 8.0),
                 child: Text(
@@ -261,7 +295,7 @@ class _NameScreenState extends State<NameScreen> {
       width: buttonWidth,
       height: buttonHeight,
       child: ElevatedButton(
-        onPressed: () => _onStartPressed(context),
+        onPressed: _isSaving ? null : () => _onStartPressed(context),
         style: ElevatedButton.styleFrom(
           backgroundColor: buttonColor,
           shape: RoundedRectangleBorder(
@@ -269,7 +303,7 @@ class _NameScreenState extends State<NameScreen> {
           ),
         ),
         child: Text(
-          'Começar',
+          _isSaving ? 'Salvando...' : 'Começar',
           style: TextStyle(
             fontSize: 20 * baseFontSize,
             color: textColor,

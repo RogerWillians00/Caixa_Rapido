@@ -4,9 +4,13 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../app_Controlers/darktheme.dart';
+import '../app_Controlers/local_storage.dart';
+import '../models/saved_app_data.dart';
 
 class InventoryScreen extends StatefulWidget {
-  const InventoryScreen({Key? key}) : super(key: key);
+  const InventoryScreen({Key? key, this.initialData}) : super(key: key);
+
+  final SavedAppData? initialData;
 
   @override
   State<InventoryScreen> createState() => _InventoryScreenState();
@@ -16,15 +20,92 @@ class _InventoryScreenState extends State<InventoryScreen> {
   // ================================================================
   // VARIAVEIS DE ESTADO
   // ================================================================
-  final List<_Product> _products = [];
+  final List<SavedProduct> _products = [];
   final TextEditingController _searchController = TextEditingController();
   String _searchText = '';
+  SavedAppData? _savedData;
+  bool _isLoading = true;
+  String? _loadError;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialData != null) {
+      _setSavedData(widget.initialData!);
+    } else {
+      _loadSavedData();
+    }
+  }
+
+  // ================================================================
+  // METODO: Restaurar os dados salvos do aplicativo
+  // ================================================================
+  Future<void> _loadSavedData() async {
+    setState(() {
+      _isLoading = true;
+      _loadError = null;
+    });
+    try {
+      final savedData = await LocalStorage.loadAppData();
+      if (!mounted) return;
+
+      if (savedData == null) {
+        setState(() {
+          _isLoading = false;
+          _loadError = 'Não há um caixa salvo para carregar.';
+        });
+        return;
+      }
+
+      setState(() => _setSavedData(savedData));
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        _loadError = 'Não foi possível carregar os dados salvos: $error';
+      });
+    }
+  }
+
+  void _setSavedData(SavedAppData savedData) {
+    _savedData = savedData;
+    _products
+      ..clear()
+      ..addAll(savedData.products);
+    _isLoading = false;
+    _loadError = null;
+  }
+
+  // ================================================================
+  // METODO: Salvar os produtos no armazenamento local
+  // ================================================================
+  Future<void> _saveProducts() async {
+    try {
+      final savedData = _savedData ?? await LocalStorage.loadAppData();
+      if (savedData == null) {
+        throw StateError('Configure um caixa antes de salvar produtos.');
+      }
+
+      final updatedData = SavedAppData(
+        cashName: savedData.cashName,
+        cashImageBytes: savedData.cashImageBytes,
+        products: List<SavedProduct>.unmodifiable(_products),
+      );
+      await LocalStorage.saveAppData(updatedData);
+      _savedData = updatedData;
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Não foi possível salvar os produtos: $error')),
+      );
+    }
+  }
 
   // ================================================================
   // METODO: Abrir o formulario para cadastrar ou editar um produto
   // ================================================================
-  Future<void> _openProductForm({_Product? product}) async {
-    final updatedProduct = await showDialog<_Product>(
+  Future<void> _openProductForm({SavedProduct? product}) async {
+    final updatedProduct = await showDialog<SavedProduct>(
       context: context,
       builder: (context) => _ProductFormDialog(product: product),
     );
@@ -39,12 +120,13 @@ class _InventoryScreenState extends State<InventoryScreen> {
         if (index != -1) _products[index] = updatedProduct;
       }
     });
+    await _saveProducts();
   }
 
   // ================================================================
   // METODO: Confirmar a remocao de um produto
   // ================================================================
-  Future<void> _removeProduct(_Product product) async {
+  Future<void> _removeProduct(SavedProduct product) async {
     final shouldRemove = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -65,6 +147,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
 
     if (shouldRemove == true && mounted) {
       setState(() => _products.remove(product));
+      await _saveProducts();
     }
   }
 
@@ -96,13 +179,31 @@ class _InventoryScreenState extends State<InventoryScreen> {
       0,
       (total, product) => total + product.quantity,
     );
+    final lowestPrice = _products.isEmpty
+        ? 0.0
+        : _products
+            .map((product) => product.price)
+            .reduce((first, second) => first < second ? first : second);
+    final highestPrice = _products.isEmpty
+        ? 0.0
+        : _products
+            .map((product) => product.price)
+            .reduce((first, second) => first > second ? first : second);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Estoque'),
+        title: Text(_savedData?.cashName ?? 'Estoque'),
         centerTitle: false,
         backgroundColor: const Color(0xFF1E5727),
         foregroundColor: Colors.white,
+        leading: _savedData?.cashImageBytes == null
+            ? null
+            : Padding(
+                padding: const EdgeInsets.all(8),
+                child: CircleAvatar(
+                  backgroundImage: MemoryImage(_savedData!.cashImageBytes!),
+                ),
+              ),
         actions: [
           if (themeProvider != null)
             IconButton(
@@ -117,91 +218,129 @@ class _InventoryScreenState extends State<InventoryScreen> {
         ],
       ),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // ============================================================
-              // SECAO: RESUMO DO ESTOQUE
-              // ============================================================
-              Text(
-                'Gerencie seus produtos',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-              ),
-              const SizedBox(height: 5),
-              Text(
-                'Cadastre produtos, preços e quantidades.',
-                style: TextStyle(color: Theme.of(context).hintColor),
-              ),
-              const SizedBox(height: 18),
-              _buildSummaryCard(context, _products.length, totalItems),
-              const SizedBox(height: 18),
-
-              // ============================================================
-              // SECAO: BUSCA E CADASTRO
-              // ============================================================
-              TextField(
-                controller: _searchController,
-                onChanged: (value) => setState(() => _searchText = value),
-                decoration: InputDecoration(
-                  hintText: 'Buscar produto',
-                  prefixIcon: const Icon(Icons.search),
-                  filled: true,
-                  fillColor: Theme.of(context).colorScheme.surface,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () => _openProductForm(),
-                  icon: const Icon(Icons.add),
-                  label: const Text('Cadastrar produto'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1E5727),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              // ============================================================
-              // SECAO: LISTA DE PRODUTOS
-              // ============================================================
-              Text(
-                'Produtos cadastrados',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-              ),
-              const SizedBox(height: 10),
-              Expanded(
-                child: filteredProducts.isEmpty
-                    ? _buildEmptyState(context)
-                    : ListView.separated(
-                        itemCount: filteredProducts.length,
-                        separatorBuilder: (context, index) =>
-                            const SizedBox(height: 10),
-                        itemBuilder: (context, index) {
-                          final product = filteredProducts[index];
-                          return _buildProductCard(context, product);
-                        },
+        child: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : _loadError != null
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            _loadError!,
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 12),
+                          ElevatedButton(
+                            onPressed: _loadSavedData,
+                            child: const Text('Tentar novamente'),
+                          ),
+                        ],
                       ),
-              ),
-            ],
-          ),
-        ),
+                    ),
+                  )
+                : Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+                    child: SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // ============================================================
+                          // SECAO: RESUMO DO ESTOQUE
+                          // ============================================================
+                          Text(
+                            'Gerencie seus produtos',
+                            style: Theme.of(context)
+                                .textTheme
+                                .headlineSmall
+                                ?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                          ),
+                          const SizedBox(height: 5),
+                          Text(
+                            'Cadastre produtos, preços e quantidades.',
+                            style:
+                                TextStyle(color: Theme.of(context).hintColor),
+                          ),
+                          const SizedBox(height: 18),
+                          _buildSummaryCard(
+                              context, _products.length, totalItems),
+                          const SizedBox(height: 18),
+
+                          // ============================================================
+                          // SECAO: BUSCA E CADASTRO
+                          // ============================================================
+                          TextField(
+                            controller: _searchController,
+                            onChanged: (value) =>
+                                setState(() => _searchText = value),
+                            decoration: InputDecoration(
+                              hintText: 'Buscar produto',
+                              prefixIcon: const Icon(Icons.search),
+                              filled: true,
+                              fillColor: Theme.of(context).colorScheme.surface,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide.none,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton.icon(
+                              onPressed: () => _openProductForm(),
+                              icon: const Icon(Icons.add),
+                              label: const Text('Cadastrar produto'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF1E5727),
+                                foregroundColor: Colors.white,
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 14),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+
+                          // ============================================================
+                          // SECAO: LISTA DE PRODUTOS
+                          // ============================================================
+                          Text(
+                            'Produtos cadastrados',
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleMedium
+                                ?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                          ),
+                          const SizedBox(height: 10),
+                          if (filteredProducts.isEmpty)
+                            SizedBox(
+                              height: 180,
+                              child: _buildEmptyState(context),
+                            )
+                          else
+                            ...filteredProducts.map((product) {
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 10),
+                                child: _buildProductCard(
+                                  context,
+                                  product,
+                                  lowestPrice,
+                                  highestPrice,
+                                ),
+                              );
+                            }),
+                        ],
+                      ),
+                    ),
+                  ),
       ),
       bottomNavigationBar: _buildNavigationBar(context),
     );
@@ -271,12 +410,30 @@ class _InventoryScreenState extends State<InventoryScreen> {
   // ================================================================
   // WIDGET: Cartao de um produto
   // ================================================================
-  Widget _buildProductCard(BuildContext context, _Product product) {
+  Widget _buildProductCard(
+    BuildContext context,
+    SavedProduct product,
+    double lowestPrice,
+    double highestPrice,
+  ) {
     final lowStock = product.quantity <= 5;
+    final priceRange = highestPrice - lowestPrice;
+    final pricePosition =
+        priceRange == 0 ? 0.5 : (product.price - lowestPrice) / priceRange;
+    final backgroundColor = Color.lerp(
+      Theme.of(context).colorScheme.surface,
+      Color.lerp(
+        const Color(0xFF2E7D32),
+        const Color(0xFFB71C1C),
+        pricePosition,
+      )!,
+      0.16,
+    );
 
     return Card(
       margin: EdgeInsets.zero,
       elevation: 1,
+      color: backgroundColor,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: ListTile(
         contentPadding: const EdgeInsets.fromLTRB(14, 6, 4, 6),
@@ -410,7 +567,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
 class _ProductFormDialog extends StatefulWidget {
   const _ProductFormDialog({this.product});
 
-  final _Product? product;
+  final SavedProduct? product;
 
   @override
   State<_ProductFormDialog> createState() => _ProductFormDialogState();
@@ -460,7 +617,7 @@ class _ProductFormDialogState extends State<_ProductFormDialog> {
 
     Navigator.pop(
       context,
-      _Product(
+      SavedProduct(
         name: _nameController.text.trim(),
         price: price,
         quantity: quantity,
@@ -497,6 +654,7 @@ class _ProductFormDialogState extends State<_ProductFormDialog> {
     final isEditing = widget.product != null;
 
     return AlertDialog(
+      scrollable: true,
       title: Text(isEditing ? 'Editar produto' : 'Cadastrar produto'),
       content: Form(
         key: _formKey,
@@ -606,21 +764,4 @@ class _ProductFormDialogState extends State<_ProductFormDialog> {
       ],
     );
   }
-}
-
-// ================================================================
-// MODELO: Dados de um produto no estoque
-// ================================================================
-class _Product {
-  const _Product({
-    required this.name,
-    required this.price,
-    required this.quantity,
-    this.imageBytes,
-  });
-
-  final String name;
-  final double price;
-  final int quantity;
-  final Uint8List? imageBytes;
 }
