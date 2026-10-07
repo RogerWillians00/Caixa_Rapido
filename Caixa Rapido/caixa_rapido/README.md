@@ -1,228 +1,83 @@
-<div align="center">
+# Caixa Rápido
 
-# 📦 Caixa Rápido
+Caixa Rápido é um aplicativo de gestão comercial desenvolvido em Flutter, pensado para facilitar o controle de vendas, estoque e fluxo de caixa de pequenos comércios.
 
-**Registre suas vendas do dia a dia de maneira rápida e fácil.**
+## 📋 Sobre o Projeto
 
-Aplicativo mobile multiplataforma feito em **Flutter**, pensado para quem
-precisa anotar e registrar produtos e valores de forma prática, sem burocracia
-e sem coleta de dados pessoais.
-
-[![Flutter](https://img.shields.io/badge/Flutter-3.7.12-02569A?logo=flutter&logoColor=white)](https://flutter.dev)
-[![Dart](https://img.shields.io/badge/Dart-%3E%3D2.19.6-0175C2?logo=dart&logoColor=white)](https://dart.dev)
-[![Platforms](https://img.shields.io/badge/Platforms-Android%20%7C%20iOS%20%7C%20Web%20%7C%20macOS%20%7C%20Windows%20%7C%20Linux-lightgrey?style=flat-square)]()
-
-</div>
-
----
-
-## 📸 Telas
-
-| Tela Inicial (Title) | Cadastro do Caixa (Name) |
-| --- | --- |
-| Logo, nome do app, disclaimer e botão de início | Foto do usuário, nome do caixa e botão de início |
-
-- **Tela Inicial** — apresentação do app com layout responsivo (adaptada para
-  celular e tablet) e créditos do desenvolvedor.
-- **Tela de Cadastro** — permite anexar uma foto pela galeria e definir o
-  nome do caixa. A foto é salva apenas localmente, com compressão para
-  economizar memória em dispositivos antigos.
+Este projeto tem como objetivo oferecer uma solução simples, rápida e intuitiva para o gerenciamento diário de um ponto de venda. Permite cadastrar produtos, realizar vendas, controlar o estoque e acompanhar o fluxo financeiro, tudo em uma interface leve e amigável.
 
 ---
 
 ## ✨ Funcionalidades
 
-- 🎨 **Tema claro e escuro** alternável pelo ícone na `AppBar`.
-- 🖼️ **Seleção de foto** via galeria do dispositivo (`image_picker`).
-- 📐 **Layout responsivo** com cálculos dinâmicos de tamanho de fonte,
-  espaçamento e logo a partir de `MediaQuery`.
-- 🧭 **Navegação por rotas nomeadas** (`/` e `/name`) centralizada em `main.dart`.
-- 🧩 **Código organizado** em widgets privados e seções comentadas.
-- 🔒 **Sem coleta de dados** — nada é enviado para servidores.
+- **Tela de Vendas**: Realize vendas de forma ágil, com cálculo automático de valores e finalização de pedidos.
+- **Controle de Estoque (Inventory)**: Gerencie todos os produtos cadastrados com informações de preço, quantidade e muito mais.
+- **Identificação Visual de Preços**: Na tela de estoque, os produtos são destacados com cores baseadas na faixa de preço, facilitando a análise do seu portfólio.
+- **Fluxo de Caixa**: Acompanhe entradas, saídas e saldo do caixa de forma organizada.
+- **Interface Intuitiva**: Design pensado para agilidade no dia a dia do comércio.
 
 ---
 
-## 🛠️ Tecnologias
+## 🧪 Últimas Alterações
 
-| Tecnologia | Versão | Uso |
-| --- | --- | --- |
-| Flutter | 3.7.12 | Framework de UI multiplataforma |
-| Dart | >= 2.19.6 | Linguagem |
-| flutter_svg | ^2.0.5 | Logo e ícones em SVG |
-| image_picker | ^1.0.4 | Seleção de foto da galeria |
-| flutter_lints | ^2.0.0 | Análise estática de código |
+### [v0.2.0] - Destaque Visual por Faixa de Preço no Estoque (2025-10-06)
 
----
+Adicionada uma funcionalidade de identificação visual na tela de estoque para facilitar a análise de precificação dos produtos.
 
-## 📁 Estrutura do Projeto
+**Mudanças realizadas:**
 
-```
-caixa_rapido/
-├── assets/
-│   ├── images/              # appLogo.svg, linkedinIcon.svg, githubIcon.svg
-│   └── resources/           # imagens extras
-├── lib/
-│   ├── main.dart            # Ponto de entrada, rotas e troca de tema
-│   ├── Screens/
-│   │   ├── titleScreen.dart # Tela inicial (tela de título)
-│   │   └── nameScreen.dart  # Tela de nome do caixa e foto
-│   └── app_Controlers/
-│       └── darktheme.dart   # ThemeProvider (InheritedWidget) do tema claro/escuro
-├── android/                 # Implementação nativa Android
-├── ios/                     # Implementação nativa iOS
-├── macos/                   # Implementação nativa macOS
-├── linux/                   # Implementação nativa Linux
-├── windows/                 # Implementação nativa Windows
-├── web/                     # Implementação Web
-├── pubspec.yaml
-└── README.md
-```
+- **`inventory_screen.dart`**:
+  - Adicionada interpolação de cores entre verde, amarelo e vermelho com base no preço de cada produto em relação ao estoque.
+  - O produto **mais barato** do estoque é exibido em **verde**.
+  - Os produtos **intermediários** apresentam uma transição gradual de **verde → amarelo → vermelho** conforme o preço aumenta.
+  - O produto **mais caro** do estoque é exibido em **vermelho**.
+  - Caso todos os produtos possuam o **mesmo preço**, o destaque fica em **amarelo** para evitar divisão por zero.
+  - Implementado cálculo dinâmico de `preço mínimo` e `preço máximo` sempre que a lista de produtos é atualizada (inclusive ao adicionar novos produtos).
+
+Essa melhoria proporciona uma visão estratégica rápida: identificar produtos com melhor custo/valor e aqueles com maior valor no estoque de forma instantânea.
 
 ---
 
-## 🚀 Como Executar
+## 🚀 Tecnologias Utilizadas
+
+- [Flutter](https://flutter.dev/) - Framework para desenvolvimento multiplataforma
+- [Dart](https://dart.dev/) - Linguagem de programação
+
+---
+
+## 📦 Como Executar o Projeto
 
 ### Pré-requisitos
 
-- [Flutter SDK](https://flutter.dev/docs/get-started/install) 3.7.12 (Dart 2.19.6)
-- Android Studio (para Android) ou Xcode (para iOS/macOS)
+- Flutter SDK instalado ([Guia de instalação](https://docs.flutter.dev/get-started/install))
+- Emulador Android/iOS ou dispositivo físico conectado
+- Editor de código (VS Code, Android Studio, etc.)
 
-### Instalação
+### Passos para execução
 
 ```bash
-# Clone o repositório
-git clone https://github.com/RogerWillians00/Caixa_Rapido.git
+# 1. Clone o repositório
+git clone https://github.com/seu-usuario/caixa_rapido.git
 
-# Entre na pasta do projeto
-cd Caixa_Rapido/caixa_rapido
+# 2. Acesse a pasta do projeto
+cd caixa_rapido
 
-# Instale as dependências
+# 3. Instale as dependências
 flutter pub get
 
-# Execute no dispositivo/emulador conectado
+# 4. Execute o aplicativo
 flutter run
 ```
 
-### Outros comandos úteis
-
-```bash
-flutter build apk      # Gera o APK de release
-flutter build ipa      # Gera o pacote para iOS
-flutter build web      # Gera a versão web
-flutter analyze        # Verifica erros e avisos do código
-dart format lib/       # Formata o código
-```
-
 ---
 
-## ✏️ Convenções de Código
+## 🛠️ Scripts Úteis
 
-O projeto segue um padrão de organização aplicado em todas as telas:
-
-- **Blocos de seção comentados** no formato:
-
-  ```dart
-  // ============================================================
-  // CONFIGURAÇÕES DE RESPONSIVIDADE
-  // ============================================================
-  ```
-
-- **`build()` sempre começa pelas constantes**, na mesma ordem:
-  1. `CONFIGURAÇÕES DE RESPONSIVIDADE`
-  2. `CONSTANTES DE ESPACAMENTO`
-  3. `CONSTANTES DE CORES`
-  4. Widgets (`SECAO: ...`)
-
-- **UI dividida em widgets privados** `_buildNomeDaSecao(...)`, cada um
-  documentado com um bloco `// WIDGET: ...`.
-
-- **Linha em branco antes do `return`** e formatação padrão do
-  `dart format` (80 colunas).
-
----
-
-## 🛠️ Stack de Manutenção
-
-| Ferramenta | Uso |
+| Comando | Descrição |
 | --- | --- |
-| `flutter analyze` | Análise estática (lint) |
-| `dart format` | Formatação automática |
+| `flutter analyze` | Executa a análise estática do código (Lint) |
+| `flutter test` | Executa todos os testes do projeto |
+| `flutter build apk` | Gera o APK para Android |
+| `flutter build ios` | Gera o build para iOS |
 
 ---
-
-## 👤 Autor
-
-Desenvolvido por **Roger Willians**
-
-- 💼 LinkedIn: [in/rogerw00](https://www.linkedin.com/in/rogerw00/)
-- 💻 GitHub: [RogerWillians00](https://github.com/RogerWillians00)
-
----
-
-## 📋 Modificações Recentes
-
-Refatoração completa de padronização de código e comentários, aplicando em
-todos os arquivos o mesmo padrão de `titleScreen.dart`.
-
-### `lib/Screens/nameScreen.dart`
-
-- Quebra da interface em **widgets privados**: `_buildAvatarSection`,
-  `_buildPrivacyNoticeSection`, `_buildNameFieldSection` e
-  `_buildStartButtonSection`.
-- Criação dos blocos de constantes no início do `build()`:
-  `CONFIGURAÇÕES DE RESPONSIVIDADE`, `CONSTANTES DE ESPACAMENTO`,
-  `CONSTANTES DE DIMENSOES FIXAS` e `CONSTANTES DE CORES`.
-- Substituição de valores "mágicos" (cores, heights, radius, fontSize) por
-  `const` nomeados, deixando o layout **responsivo** (escala em tablets).
-- Normalização de **indentação** e remoção de linhas acima de 80 colunas.
-- Reordenação e padronização dos imports e dos **comentários** de seção.
-
-### `lib/main.dart`
-
-- Correção da indentação do `MaterialApp` (bloco `routes:` desalinhado).
-- Rotas extraídas para o método privado `_buildRoutes()`.
-- Adição de `const` nos construtores das telas e comentário de
-  documentação das rotas.
-- Correção de quebra de linha ausente ao final do arquivo.
-
-### `lib/app_Controlers/darktheme.dart`
-
-- Adição de blocos de comentário em `PROPRIEDADES` e `METODO: ...`
-  para documentar `of()` e `updateShouldNotify()`.
-
-### `lib/Screens/titleScreen.dart`
-
-- Correção do bloco de comentário quebrado na seção
-  `WIDGET: Botao Começar`.
-
-### Arquivos de suporte
-
-- Criação deste `README.md` com documentação do projeto, estrutura,
-  instruções de execução e convenções de código.
-
-### Pendências antes de publicar
-
-- Remover os arquivos `.DS_Store` que estão versionados:
-  `git rm --cached .DS_Store` e acrescentar `.DS_Store` ao `.gitignore`.
-- Definir um arquivo `LICENSE` (ver seção Licença).
-
-### Validação
-
-```bash
-dart format lib/   # 4 arquivos, 0 alterações pendentes
-flutter analyze    # 0 erros
-```
-
----
-
-## 📄 Licença
-
-> ⚠️ Nenhuma licença foi definida ainda. Adicione um arquivo `LICENSE` na
-> raiz do repositório e informe aqui qual licença será aplicada antes de
-> publicar o código como aberto.
-
----
-
-<div align="center">
-Feito com ❤️ por **Roger Willians**
-</div>

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'app_Controlers/darktheme.dart';
+import 'Screens/inventory_screen.dart';
 import 'Screens/titleScreen.dart';
 import 'Screens/nameScreen.dart';
 
@@ -53,6 +54,7 @@ class _MyAppState extends State<MyApp> {
       // É aqui que voce adiciona as rotas para os botoes navegarem
       '/': (context) => const TitleScreen(),
       '/name': (context) => const NameScreen(),
+      '/inventory': (context) => const InventoryScreen(),
     };
   }
 }

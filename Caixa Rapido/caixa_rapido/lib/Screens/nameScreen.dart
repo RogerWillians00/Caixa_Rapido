@@ -39,7 +39,7 @@ class _NameScreenState extends State<NameScreen> {
   // METODO: Botao Comecar
   // ================================================================
   void _onStartPressed(BuildContext context) {
-    Navigator.of(context).pushReplacementNamed('/');
+    Navigator.of(context).pushReplacementNamed('/inventory');
   }
 
   @override
